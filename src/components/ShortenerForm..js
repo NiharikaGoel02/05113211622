@@ -1,13 +1,8 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Container, Typography, TextField, Button, Grid } from '@mui/material';
-import { generateShortcode } from './utils/urlUtils';
-import UrlList from './components/UrlList';
-import StatisticsPage from './components/StatisticsPage';
-import RedirectHandler from './components/RedirectHandler';
-import { Log } from './utils/loggerMiddleware';
+import { TextField, Button, Grid, Typography } from '@mui/material';
+import { generateShortcode } from '../utils/urlUtils';
+import { Log } from '../utils/logger';
 
-// 🔴 COPY your ShortenerForm component here:
 const ShortenerForm = ({ onShorten, existingCodes }) => {
   const [urls, setUrls] = useState([{ longUrl: '', validity: '', shortcode: '' }]);
 
@@ -34,6 +29,7 @@ const ShortenerForm = ({ onShorten, existingCodes }) => {
       return { ...url, validity, shortcode };
     }).filter(Boolean);
 
+    // 🔷 **Safe logging call wrapped in try-catch**
     try {
       await Log("frontend", "info", "api", `ShortenSubmit: ${JSON.stringify(validated)}`);
     } catch (logError) {
@@ -41,7 +37,7 @@ const ShortenerForm = ({ onShorten, existingCodes }) => {
     }
 
     onShorten(validated);
-    setUrls([{ longUrl: '', validity: '', shortcode: '' }]);
+    setUrls([{ longUrl: '', validity: '', shortcode: '' }]); // Reset form
   };
 
   return (
@@ -83,48 +79,4 @@ const ShortenerForm = ({ onShorten, existingCodes }) => {
   );
 };
 
-function App() {
-  const [urlMappings, setUrlMappings] = useState([]);
-
-  const handleShorten = (newUrls) => {
-    const now = new Date();
-
-    const added = newUrls.map(u => {
-      const createdAt = now.toISOString();
-      const expiryAt = new Date(now.getTime() + u.validity * 60000).toISOString();
-
-      Log('frontend', 'info', 'api', `URLShortened: ${u.shortcode}`);
-
-      return {
-        ...u,
-        createdAt,
-        expiryAt,
-        clicks: []
-      };
-    });
-
-    setUrlMappings(prev => [...prev, ...added]);
-  };
-
-  const existingCodes = urlMappings.map(u => u.shortcode);
-
-  return (
-    <Router>
-      <Container>
-        <Typography variant="h3" sx={{my:4}}>React URL Shortener</Typography>
-        <Routes>
-          <Route path="/" element={
-            <>
-              <ShortenerForm onShorten={handleShorten} existingCodes={existingCodes} />
-              <UrlList urls={urlMappings} />
-            </>
-          }/>
-          <Route path="/stats" element={<StatisticsPage stats={urlMappings} />} />
-          <Route path="/:shortcode" element={<RedirectHandler urlMappings={urlMappings} />} />
-        </Routes>
-      </Container>
-    </Router>
-  );
-}
-
-export default App;
+export default ShortenerForm;
